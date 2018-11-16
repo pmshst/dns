@@ -155,7 +155,7 @@ class DNSHandler(socketserver.BaseRequestHandler):
 class DNSServer(object):
     @staticmethod
     def start():
-        # casch the request
+        # cache the request
         DNSServer.deq_cache = Queue(maxsize=deq_size) if deq_size > 0 else Queue()
         # LRU Cache
         DNSServer.dns_cache = pylru.lrucache(lru_size)

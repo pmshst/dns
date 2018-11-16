@@ -6,13 +6,14 @@ import pandas as pd
 import logging
 import time
 import os
+import sys
+
 
 logger = logging.getLogger('crawler')
 hdlr = logging.FileHandler('crawler.log')
 #formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                 datefmt = '%Y-%m-%d %A %H:%M:%S')
-
 
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -22,8 +23,6 @@ logger.addHandler(hdlr)
 logger.addHandler(ch)
 logger.setLevel(logging.DEBUG)
 
-# xn--infnote-q68luew60n.com
-# 47.74.45.239:32767
 message = {
    'identifier': '0',
    'type': 'question',
@@ -35,7 +34,7 @@ message = {
 full_node1_ip = '47.74.45.239'
 full_node1_port = '32767'
 # True means was crawled
-ips = {'47.74.45.239':True}
+ips = {'47.74.45.239':False}
 ports = ['32767']
 f = open('infnote_db_new.csv', 'w')
 f.write('primarysever.infnote.com,test.admin.infnote.com 2016071114 28800 7200 604800 86400\n')
@@ -71,10 +70,10 @@ async def request_peers(ip='47.74.45.239', port='32767'):
                 return
     except OSError as error:
         logger.info(ip+' is not good')
-        ips[ip] = True
         good = False
 
     finally:
+        ips[ip] = True
         if(good):
             logger.info(ip+' is good')
             f.write('infnote.com,' + ip + '\n')
@@ -83,15 +82,17 @@ async def request_peers(ip='47.74.45.239', port='32767'):
             nodes_file.write(ip + ',no,' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '\n')
         return
 
-def main(ip = '47.74.45.239',port = '32767'):
-    asyncio.get_event_loop().run_until_complete(request_peers(ip, port))
-    while True:
-        for ip in ips.keys():
+def main():
+    # asyncio.get_event_loop().run_until_complete(request_peers(ip, port))
+    global ips
+    while False in list(ips.values()) :
+        for ip in list(ips.keys()):
+        #for k, v in ips.items():
             if(ips[ip] == False):
-                asyncio.get_event_loop().run_until_complete(request_peers(ip, port))
+                asyncio.get_event_loop().run_until_complete(request_peers(ip, '32767'))
                 # asyncio.get_event_loop().run_until_complete(request_peers('47.74.45.239', '32765'))
-                ips[ip] = True
-        break
+                ips[ip] == True
+
     logger.info('crawled ips ' + str(ips.keys()))
     nodes_file.close()
     f.close()
@@ -104,4 +105,6 @@ def main(ip = '47.74.45.239',port = '32767'):
         os.rename(current_file, old_file)
     os.rename(new_file, current_file)
 
-main(full_node1_ip, full_node1_port)
+
+if __name__ == "__main__":
+    main()
