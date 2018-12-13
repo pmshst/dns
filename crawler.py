@@ -1,10 +1,10 @@
-#!/usr/bin/env python
 import asyncio
 import websockets
 import json
 import logging
 import time
 import os
+import sys
 
 
 logger = logging.getLogger('crawler')
@@ -43,19 +43,23 @@ message_info = {
    }
 }
 
-full_node1_ip = '47.74.45.239'
-full_node1_port = '32767'
+# full_node1_ip = '47.74.45.239'
+# full_node1_port = '32767'
 # True means was crawled
 # ['47.74.45.239', '47.74.47.117']
-ips = {'47.74.45.239': False}
+ips = {}
 ports = ['32767']
 f = open('infnote_db_new.csv', 'w')
 f.write('primarysever.infnote.com,' +
         'test.admin.infnote.com ' +
         '2016071114 28800 7200 604800 86400\n')
-nodes_file = open('nodes.csv', 'w')
+nodes_file_name = 'nodes.csv'
+nodes_file = open(nodes_file_name, 'w')
 nodes_file.write('ip,good,last_check_time\n')
-
+nodes_file.flush()
+seed = 'seed.infnote.com'
+delimiter = ','
+iterm = seed + delimiter
 
 def get_ws_url(ip='47.74.45.239', port='32767'):
     return 'ws://' + ip + ':' + port
@@ -69,6 +73,8 @@ async def request_info(ip='47.74.45.239', port='32767'):
             await websocket.send(json.JSONEncoder().encode(message_info))
             resp_inf = await websocket.recv()
             logger.info(resp_inf)
+            if(resp_inf is None):
+                good = False
     except OSError as error:
         logger.info(ip+' is not good')
         good = False
@@ -77,7 +83,8 @@ async def request_info(ip='47.74.45.239', port='32767'):
         ips[ip] = True
         if(good):
             logger.info(ip+' is good')
-            f.write('seed.infnote.com,' + ip + '\n')
+            f.write(iterm + ip + '\n')
+            f.flush()
             nodes_file.write(ip + ',yes,' +
                              time.strftime(
                                  "%Y-%m-%d %H:%M:%S",
@@ -89,6 +96,7 @@ async def request_info(ip='47.74.45.239', port='32767'):
                                  "%Y-%m-%d %H:%M:%S",
                                  time.localtime())
                              + '\n')
+        nodes_file.flush()
         return
 
 
@@ -127,17 +135,21 @@ async def request_peers(ip='47.74.45.239', port='32767'):
         if(good):
             ips[ip] = True
             logger.info(ip+' is good')
-            f.write('seed.infnote.com,' + ip + '\n')
+            f.write(iterm + ip + '\n')
+            f.flush()
             nodes_file.write(ip + ',yes,' +
                              time.strftime(
                                  "%Y-%m-%d %H:%M:%S",
                                  time.localtime())
                              + '\n')
+            nodes_file.flush()
         return
 
 
 def main():
     global ips
+    global f
+    global nodes_file
     while False in list(ips.values()):
         for ip in list(ips.keys()):
             if(ips[ip] is False):
@@ -157,10 +169,22 @@ def main():
     current_file = 'infnote_db.csv'
     if os.path.exists(old_file):
         os.remove(old_file)
-    if os.path.exists(current_file):
+    if os.path.exists(current_file) and os.path.exists(new_file):
         os.rename(current_file, old_file)
-    os.rename(new_file, current_file)
+        os.rename(new_file, current_file)
 
 
 if __name__ == "__main__":
+    """
+    sys.argv[1] is a full node IP
+    sys.argv[2] is the seed url
+    """
+    if len(sys.argv) == 2:
+        ips[sys.argv[1]] = False
+    elif len(sys.argv) == 3:
+        ips[sys.argv[1]] = False
+        seed = sys.argv[2]
+        iterm = seed + delimiter
+    else:
+        ips = {'47.74.45.239': False}
     main()
